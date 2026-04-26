@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1a1a1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>貪食蛇 vs 獵人 · Nokia 復古版</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { overflow-x: hidden; }
+  body {
+    background: #1a1a1a;
+    color: #d8d8d8;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 12px 32px;
+    gap: 12px;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+  }
+  h1 { font-size: 18px; font-weight: 500; letter-spacing: 2px; color: #f0f0f0; text-align: center; }
+  .subtitle { font-size: 12px; color: #888; letter-spacing: 1px; text-align: center; margin-top: -6px; }
+  .snake-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; outline: none; width: 100%; max-width: 360px; }
+  .snake-wrap:focus { outline: none; }
+  .phone { background: #2c2c2c; border-radius: 22px; padding: 14px 14px 18px; width: 100%; max-width: 320px; box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
+  .brand { color: #c8c8c8; font-size: 11px; letter-spacing: 3px; text-align: center; padding: 2px 0 10px; font-weight: 500; }
+  .lcd { background: #9bbc0f; border-radius: 6px; padding: 10px 10px 12px; border: 1px solid #1a1a1a; }
+  .lcd-top { display: flex; justify-content: space-between; font-family: Menlo, Monaco, Consolas, monospace; font-size: 11px; color: #0f380f; margin-bottom: 8px; letter-spacing: 1.5px; font-weight: 500; }
+  .canvas-wrap { position: relative; touch-action: none; width: 100%; }
+  canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; image-rendering: crisp-edges; }
+  .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 4px; align-items: center; justify-content: center; font-family: Menlo, Monaco, Consolas, monospace; font-size: 13px; font-weight: 500; color: #0f380f; letter-spacing: 2px; background: rgba(155, 188, 15, 0.78); text-align: center; padding: 0 12px; }
+  .overlay small { font-size: 10px; letter-spacing: 1px; opacity: 0.85; }
+  .dpad { margin: 14px auto 0; display: grid; grid-template-columns: repeat(3, 56px); grid-template-rows: repeat(3, 56px); gap: 5px; width: max-content; }
+  .dpad-btn { background: #3a3a3a; border: none; border-radius: 10px; color: #d8d8d8; font-size: 20px; font-family: inherit; display: flex; align-items: center; justify-content: center; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; padding: 0; line-height: 1; cursor: pointer; touch-action: manipulation; }
+  .dpad-btn:active { background: #5a5a5a; }
+  .dpad-up    { grid-column: 2; grid-row: 1; }
+  .dpad-left  { grid-column: 1; grid-row: 2; }
+  .dpad-right { grid-column: 3; grid-row: 2; }
+  .dpad-down  { grid-column: 2; grid-row: 3; }
+  .dpad-center { grid-column: 2; grid-row: 2; background: #1f1f1f; border: 1px solid #4a4a4a; cursor: default; }
+  .legend { display: grid; grid-template-columns: repeat(2, auto); gap: 6px 14px; font-size: 12px; color: #999; padding: 0 4px; justify-content: center; }
+  .legend span { white-space: nowrap; }
+  .mute-btn { background: transparent; border: 1px solid #444; color: #aaa; padding: 6px 16px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: inherit; }
+  .mute-btn:hover { background: #2a2a2a; color: #ddd; }
+  .mute-btn.muted { opacity: 0.5; }
+  .hint { font-size: 11px; color: #777; text-align: center; max-width: 320px; line-height: 1.6; padding: 0 8px; }
+  .footer { font-size: 11px; color: #555; margin-top: 4px; }
+  @media (max-width: 360px) {
+    .dpad { grid-template-columns: repeat(3, 50px); grid-template-rows: repeat(3, 50px); }
+    .dpad-btn { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+  <h1>貪食蛇 vs 獵人</h1>
+  <p class="subtitle">救援同伴 · 善用冰凍與安全屋</p>
+
+  <div class="snake-wrap" tabindex="0" id="game">
+    <div class="phone">
+      <div class="brand">NOKIΛ</div>
+      <div class="lcd">
+        <div class="lcd-top">
+          <span>分數 <span id="score">000</span></span>
+          <span>救援 <span id="rescued">00</span></span>
+        </div>
+        <div class="canvas-wrap" id="canvas-wrap">
+          <canvas id="lcd"></canvas>
+          <div class="overlay" id="overlay">
+            <span id="ov-main">點任一方向鍵開始</span>
+            <small id="ov-sub">救援同伴 · 善用道具</small>
+          </div>
+        </div>
+      </div>
+      <div class="dpad">
+        <button class="dpad-btn dpad-up" data-dir="up" aria-label="上">▲</button>
+        <button class="dpad-btn dpad-left" data-dir="left" aria-label="左">◄</button>
+        <button class="dpad-btn dpad-center" disabled aria-hidden="true"></button>
+        <button class="dpad-btn dpad-right" data-dir="right" aria-label="右">►</button>
+        <button class="dpad-btn dpad-down" data-dir="down" aria-label="下">▼</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="legend">
+    <span>● 食物 +1 分</span>
+    <span>★ 冰凍道具</span>
+    <span>⌂ 安全屋無敵</span>
+    <span>S 同伴 +3 分</span>
+  </p>
+
+  <button class="mute-btn" id="mute-btn">音效 開</button>
+
+  <p class="hint">手機:點按方向鍵或在畫面上滑動 · 桌面:方向鍵也可使用</p>
+  <p class="footer">made with Claude</p>
+
+<script>
+(function() {
+  const COLS = 20, ROWS = 18, CELL = 14;
+  const BG = "#9bbc0f", DIM = "#8aac0a", DARK = "#0f380f";
+  const HUNTER_P  = [[0,1,1,1,0],[1,1,1,1,1],[1,0,1,0,1],[1,1,1,1,1],[1,0,1,0,1]];
+  const FREEZE_P  = [[0,0,1,0,0],[1,0,1,0,1],[0,1,1,1,0],[1,0,1,0,1],[0,0,1,0,0]];
+  const HOUSE_P   = [[0,0,1,0,0],[0,1,1,1,0],[1,1,1,1,1],[1,0,0,0,1],[1,1,0,1,1]];
+  const CAPTIVE_P = [[1,1,1,1,1],[0,0,0,0,1],[1,1,1,1,1],[1,0,0,0,0],[1,1,1,1,1]];
+  const DIR_MAP = {
+    up: {x: 0, y: -1}, down: {x: 0, y: 1},
+    left: {x: -1, y: 0}, right: {x: 1, y: 0}
+  };
+
+  let audioCtx = null;
+  let muted = false;
+  try { muted = localStorage.getItem("snakeMuted") === "1"; } catch(e) {}
+
+  function ensureAudio() {
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+      catch(e) { return; }
+    }
+    if (audioCtx.state === "suspended") audioCtx.resume();
+  }
+  function playNote(time, freq, duration, type, gain) {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    g.gain.setValueAtTime(0, time);
+    g.gain.linearRampToValueAtTime(gain, time + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.001, time + duration);
+    osc.connect(g); g.connect(audioCtx.destination);
+    osc.start(time); osc.stop(time + duration + 0.02);
+  }
+  function playSweep(freqStart, freqEnd, duration, type, gain) {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freqStart, t);
+    osc.frequency.exponentialRampToValueAtTime(freqEnd, t + duration);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(gain, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, t + duration);
+    osc.connect(g); g.connect(audioCtx.destination);
+    osc.start(t); osc.stop(t + duration + 0.02);
+  }
+  function sndEat() { if (muted || !audioCtx) return; playNote(audioCtx.currentTime, 880, 0.07, "square", 0.12); }
+  function sndRescue() {
+    if (muted || !audioCtx) return;
+    const t = audioCtx.currentTime;
+    playNote(t,        880,  0.08, "square", 0.12);
+    playNote(t + 0.09, 1175, 0.08, "square", 0.12);
+    playNote(t + 0.18, 1568, 0.14, "square", 0.12);
+  }
+  function sndFreeze() { if (muted) return; playSweep(1500, 600, 0.28, "sine", 0.13); }
+  function sndSafeHouse() {
+    if (muted || !audioCtx) return;
+    const t = audioCtx.currentTime;
+    playNote(t, 523, 0.18, "triangle", 0.10);
+    playNote(t, 659, 0.18, "triangle", 0.08);
+  }
+  function sndDie() { if (muted) return; playSweep(440, 110, 0.55, "sawtooth", 0.14); }
+
+  const canvas = document.getElementById("lcd");
+  const ctx = canvas.getContext("2d");
+  canvas.width = COLS * CELL;
+  canvas.height = ROWS * CELL;
+
+  const game = document.getElementById("game");
+  const canvasWrap = document.getElementById("canvas-wrap");
+  const scoreEl = document.getElementById("score");
+  const rescuedEl = document.getElementById("rescued");
+  const overlay = document.getElementById("overlay");
+  const ovMain = document.getElementById("ov-main");
+  const ovSub = document.getElementById("ov-sub");
+  const muteBtn = document.getElementById("mute-btn");
+
+  let snake, dir, nextDir, food, hunter, freezeItem, safeHouse, captive;
+  let score, rescued, alive, started, hunterTick;
+  let frozenTicks, shieldTicks, freezeCD, captiveCD;
+  let timer;
+
+  function rand(n) { return Math.floor(Math.random() * n); }
+  function occupied(c) {
+    if (snake.some(s => s.x === c.x && s.y === c.y)) return true;
+    if (food && food.x === c.x && food.y === c.y) return true;
+    if (hunter && hunter.x === c.x && hunter.y === c.y) return true;
+    if (freezeItem && freezeItem.x === c.x && freezeItem.y === c.y) return true;
+    if (safeHouse && safeHouse.x === c.x && safeHouse.y === c.y) return true;
+    if (captive && captive.x === c.x && captive.y === c.y) return true;
+    return false;
+  }
+  function spawnAt() {
+    for (let i = 0; i < 200; i++) {
+      const c = {x: rand(COLS), y: rand(ROWS)};
+      if (!occupied(c)) return c;
+    }
+    return {x: 0, y: 0};
+  }
+  function spawnHunter() {
+    const head = snake[0];
+    let best = null, bestD = -1;
+    for (let i = 0; i < 80; i++) {
+      const c = {x: rand(COLS), y: rand(ROWS)};
+      if (occupied(c)) continue;
+      const d = Math.abs(c.x - head.x) + Math.abs(c.y - head.y);
+      if (d > bestD) { bestD = d; best = c; }
+      if (bestD > 14) break;
+    }
+    return best;
+  }
+
+  function reset() {
+    snake = [{x: 10, y: 9}, {x: 9, y: 9}, {x: 8, y: 9}];
+    dir = {x: 1, y: 0}; nextDir = dir;
+    score = 0; rescued = 0;
+    alive = true; started = false;
+    food = null; hunter = null; freezeItem = null; safeHouse = null; captive = null;
+    hunterTick = 0; frozenTicks = 0; shieldTicks = 0;
+    freezeCD = 25; captiveCD = 0;
+    food = spawnAt();
+    safeHouse = spawnAt();
+    captive = spawnAt();
+    hunter = spawnHunter();
+    if (timer) clearInterval(timer);
+    timer = setInterval(tick, 140);
+    draw();
+    updateOverlay("準備開始", "點方向鍵啟動");
+  }
+
+  function moveHunter() {
+    const head = snake[0];
+    const dx = head.x - hunter.x;
+    const dy = head.y - hunter.y;
+    let sx = 0, sy = 0;
+    if (Math.abs(dx) > Math.abs(dy)) sx = Math.sign(dx);
+    else if (Math.abs(dy) > Math.abs(dx)) sy = Math.sign(dy);
+    else if (dx !== 0 || dy !== 0) {
+      if (Math.random() < 0.5) sx = Math.sign(dx); else sy = Math.sign(dy);
+    }
+    hunter.x = Math.max(0, Math.min(COLS - 1, hunter.x + sx));
+    hunter.y = Math.max(0, Math.min(ROWS - 1, hunter.y + sy));
+  }
+
+  function tick() {
+    if (!alive || !started) return;
+    dir = nextDir;
+    const head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
+    if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) return die("撞牆了");
+    if (snake.some(s => s.x === head.x && s.y === head.y)) return die("咬到自己");
+    if (hunter && head.x === hunter.x && head.y === hunter.y && frozenTicks <= 0 && shieldTicks <= 0) return die("被獵人抓到");
+
+    snake.unshift(head);
+
+    let grew = false;
+    if (food && head.x === food.x && head.y === food.y) {
+      score++; sndEat();
+      food = spawnAt(); grew = true;
+      const speed = Math.max(70, 140 - score * 4);
+      clearInterval(timer); timer = setInterval(tick, speed);
+    }
+    if (freezeItem && head.x === freezeItem.x && head.y === freezeItem.y) {
+      frozenTicks = 16; sndFreeze();
+      freezeItem = null; freezeCD = 35;
+    }
+    if (captive && head.x === captive.x && head.y === captive.y) {
+      rescued++; score += 3; sndRescue();
+      captive = null; captiveCD = 22;
+    }
+    if (safeHouse && head.x === safeHouse.x && head.y === safeHouse.y) {
+      shieldTicks = Math.max(shieldTicks, 10);
+      sndSafeHouse();
+    }
+
+    if (!grew) snake.pop();
+    if (frozenTicks > 0) frozenTicks--;
+    if (shieldTicks > 0) shieldTicks--;
+    if (!freezeItem) { freezeCD--; if (freezeCD <= 0) freezeItem = spawnAt(); }
+    if (!captive) { captiveCD--; if (captiveCD <= 0) captive = spawnAt(); }
+
+    hunterTick++;
+    if (frozenTicks <= 0 && hunterTick % 2 === 0 && hunter) {
+      moveHunter();
+      if (shieldTicks <= 0 && snake.some(s => s.x === hunter.x && s.y === hunter.y)) return die("被獵人抓到");
+    }
+    draw();
+  }
+
+  function die(cause) {
+    alive = false; started = false;
+    sndDie();
+    clearInterval(timer);
+    draw();
+    updateOverlay("GAME OVER", cause + " · 分 " + String(score).padStart(3, "0") + " · 救 " + String(rescued).padStart(2, "0"));
+  }
+
+  function drawPattern(x, y, pattern) {
+    const px = x * CELL, py = y * CELL;
+    const PX = 2, ox = px + 2, oy = py + 2;
+    ctx.fillStyle = DARK;
+    for (let r = 0; r < 5; r++)
+      for (let c = 0; c < 5; c++)
+        if (pattern[r][c]) ctx.fillRect(ox + c * PX, oy + r * PX, PX, PX);
+  }
+  function drawSnakeCell(x, y, shielded) {
+    const px = x * CELL, py = y * CELL;
+    ctx.fillStyle = DARK;
+    if (shielded) {
+      ctx.fillRect(px + 2, py + 2, CELL - 4, 2);
+      ctx.fillRect(px + 2, py + CELL - 4, CELL - 4, 2);
+      ctx.fillRect(px + 2, py + 2, 2, CELL - 4);
+      ctx.fillRect(px + CELL - 4, py + 2, 2, CELL - 4);
+    } else {
+      ctx.fillRect(px + 2, py + 2, CELL - 4, CELL - 4);
+      ctx.fillStyle = BG;
+      ctx.fillRect(px + 5, py + 5, CELL - 10, CELL - 10);
+      ctx.fillStyle = DARK;
+      ctx.fillRect(px + 6, py + 6, CELL - 12, CELL - 12);
+    }
+  }
+  function drawFood(x, y) {
+    const px = x * CELL, py = y * CELL;
+    ctx.fillStyle = DARK;
+    ctx.fillRect(px + 4, py + 2, CELL - 8, 2);
+    ctx.fillRect(px + 2, py + 4, 2, CELL - 8);
+    ctx.fillRect(px + CELL - 4, py + 4, 2, CELL - 8);
+    ctx.fillRect(px + 4, py + CELL - 4, CELL - 8, 2);
+    ctx.fillRect(px + 4, py + 4, CELL - 8, CELL - 8);
+  }
+  function drawHunter(x, y, frozen) {
+    drawPattern(x, y, HUNTER_P);
+    if (frozen) {
+      const px = x * CELL, py = y * CELL;
+      ctx.fillStyle = DARK;
+      ctx.fillRect(px, py, CELL, 1);
+      ctx.fillRect(px, py + CELL - 1, CELL, 1);
+      ctx.fillRect(px, py, 1, CELL);
+      ctx.fillRect(px + CELL - 1, py, 1, CELL);
+    }
+  }
+
+  function draw() {
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = DIM;
+    for (let y = 0; y < ROWS; y++)
+      for (let x = 0; x < COLS; x++)
+        ctx.fillRect(x * CELL + 6, y * CELL + 6, 2, 2);
+    ctx.strokeStyle = DARK; ctx.lineWidth = 1;
+    ctx.strokeRect(0.5, 0.5, canvas.width - 1, canvas.height - 1);
+    if (safeHouse) drawPattern(safeHouse.x, safeHouse.y, HOUSE_P);
+    if (captive) drawPattern(captive.x, captive.y, CAPTIVE_P);
+    if (freezeItem) drawPattern(freezeItem.x, freezeItem.y, FREEZE_P);
+    if (food) drawFood(food.x, food.y);
+    const shielded = shieldTicks > 0;
+    snake.forEach(s => drawSnakeCell(s.x, s.y, shielded));
+    if (hunter) drawHunter(hunter.x, hunter.y, frozenTicks > 0);
+    scoreEl.textContent = String(score).padStart(3, "0");
+    rescuedEl.textContent = String(rescued).padStart(2, "0");
+  }
+
+  function updateOverlay(main, sub) {
+    if (started && alive) overlay.style.display = "none";
+    else { overlay.style.display = "flex"; ovMain.textContent = main; ovSub.textContent = sub; }
+  }
+
+  function applyDirection(nd) {
+    if (!nd) return;
+    if (!alive) { reset(); started = true; nextDir = nd; updateOverlay("", ""); return; }
+    if (nd.x === -dir.x && nd.y === -dir.y) return;
+    nextDir = nd;
+    if (!started) { started = true; updateOverlay("", ""); }
+  }
+
+  function handleKey(e) {
+    const k = e.key;
+    let nd = null;
+    if (k === "ArrowUp") nd = {x: 0, y: -1};
+    else if (k === "ArrowDown") nd = {x: 0, y: 1};
+    else if (k === "ArrowLeft") nd = {x: -1, y: 0};
+    else if (k === "ArrowRight") nd = {x: 1, y: 0};
+    if (!nd) return;
+    e.preventDefault();
+    ensureAudio();
+    applyDirection(nd);
+  }
+
+  game.addEventListener("keydown", handleKey);
+  window.addEventListener("keydown", (e) => {
+    if (document.activeElement === game || document.activeElement === document.body) handleKey(e);
+  });
+
+  document.querySelectorAll(".dpad-btn[data-dir]").forEach(btn => {
+    const dirKey = btn.getAttribute("data-dir");
+    const nd = DIR_MAP[dirKey];
+    const handler = (e) => {
+      e.preventDefault();
+      ensureAudio();
+      applyDirection(nd);
+      game.focus();
+    };
+    btn.addEventListener("touchstart", handler, {passive: false});
+    btn.addEventListener("mousedown", handler);
+    btn.addEventListener("contextmenu", e => e.preventDefault());
+  });
+
+  let touchStart = null;
+  canvasWrap.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1) return;
+    touchStart = {x: e.touches[0].clientX, y: e.touches[0].clientY};
+    ensureAudio();
+    e.preventDefault();
+  }, {passive: false});
+  canvasWrap.addEventListener("touchmove", (e) => {
+    if (!touchStart || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    const dx = t.clientX - touchStart.x;
+    const dy = t.clientY - touchStart.y;
+    if (Math.abs(dx) < 18 && Math.abs(dy) < 18) return;
+    let nd;
+    if (Math.abs(dx) > Math.abs(dy)) nd = dx > 0 ? {x: 1, y: 0} : {x: -1, y: 0};
+    else nd = dy > 0 ? {x: 0, y: 1} : {x: 0, y: -1};
+    applyDirection(nd);
+    touchStart = {x: t.clientX, y: t.clientY};
+    e.preventDefault();
+  }, {passive: false});
+  canvasWrap.addEventListener("touchend", () => { touchStart = null; });
+
+  function syncMuteBtn() {
+    muteBtn.textContent = muted ? "音效 關" : "音效 開";
+    muteBtn.classList.toggle("muted", muted);
+  }
+  syncMuteBtn();
+  muteBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    ensureAudio();
+    muted = !muted;
+    try { localStorage.setItem("snakeMuted", muted ? "1" : "0"); } catch(err) {}
+    syncMuteBtn();
+  });
+
+  reset();
+  setTimeout(() => game.focus(), 50);
+})();
+</script>
+</body>
+</html>
